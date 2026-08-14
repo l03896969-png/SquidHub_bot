@@ -7,12 +7,27 @@ from phonenumbers import carrier, geocoder, timezone
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# ========== ТОКЕН (ВСТАВЛЕН ТВОЙ) ==========
+# ========== ТОКЕН ==========
 TELEGRAM_TOKEN = "8476291431:AAElHgmZT92_GIBIchbnQ3AxCxu98HEQjx4"
+
+# ========== ТВОЙ ID (ВСТАВЛЕН) ==========
+OWNER_ID = 1100862483
+
+# ========== БЕЛЫЙ СПИСОК (РАЗРЕШЁННЫЕ) ==========
+ALLOWED_USERS = [
+    OWNER_ID,  # ты всегда имеешь доступ
+]
+
+# ========== ЗАЯВКИ НА ОДОБРЕНИЕ ==========
+PENDING_REQUESTS = {}  # {user_id: username}
 
 logging.basicConfig(level=logging.INFO)
 
-# ========== ФУНКЦИИ ==========
+# ========== ПРОВЕРКА ДОСТУПА ==========
+def is_allowed(user_id: int) -> bool:
+    return user_id in ALLOWED_USERS
+
+# ========== ФУНКЦИИ ПРОБИВА ==========
 def get_phone_info(phone: str) -> dict:
     try:
         parsed = phonenumbers.parse(phone, None)
@@ -53,19 +68,105 @@ def get_ip_info(ip: str) -> dict:
     except:
         return {"error": "Ошибка запроса"}
 
-# ========== КОМАНДЫ БОТА ==========
+# ========== ОСНОВНЫЕ КОМАНДЫ ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🔍 *Бот-пробиватор*\n"
-        "Отправь мне:\n"
-        "• Номер телефона (+380XXXXXXXXX)\n"
-        "• Юзернейм Telegram (@username)\n"
-        "• IP-адрес\n\n"
-        "Я выдам всю информацию.",
+    user_id = update.effective_user.id
+    username = update.effective_user.username or "без юзернейма"
+
+    if is_allowed(user_id):
+        await update.message.reply_text(
+            "🔍 *Бот-пробиватор*\n"
+            "Отправь мне:\n"
+            "• Номер телефона (+380XXXXXXXXX)\n"
+            "• Юзернейм Telegram (@username)\n"
+            "• IP-адрес\n\n"
+            "Я выдам всю информацию.",
+            parse_mode="Markdown"
+        )
+        return
+
+    # Если пользователь НЕ в белом списке
+    if user_id in PENDING_REQUESTS:
+        await update.message.reply_text("⏳ Ваш запрос уже отправлен на одобрение. Ожидайте.")
+        return
+
+    # Добавляем в очередь на одобрение
+    PENDING_REQUESTS[user_id] = username
+    await update.message.reply_text("📨 Запрос отправлен на одобрение владельцу. Ожидайте.")
+
+    # Отправляем уведомление владельцу
+    await context.bot.send_message(
+        chat_id=OWNER_ID,
+        text=f"🔔 *Новый запрос доступа*\n"
+             f"👤 @{username}\n"
+             f"🆔 ID: `{user_id}`\n\n"
+             f"✅ /approve {user_id} — одобрить\n"
+             f"❌ /deny {user_id} — отклонить",
         parse_mode="Markdown"
     )
 
+# ========== ОДОБРЕНИЕ ==========
+async def approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != OWNER_ID:
+        await update.message.reply_text("⛔ Только владелец может одобрять.")
+        return
+
+    try:
+        target_id = int(context.args[0])
+        if target_id in ALLOWED_USERS:
+            await update.message.reply_text(f"ℹ️ Пользователь {target_id} уже в белом списке.")
+            return
+
+        if target_id not in PENDING_REQUESTS:
+            await update.message.reply_text(f"❌ Заявка от {target_id} не найдена.")
+            return
+
+        # Добавляем в белый список
+        ALLOWED_USERS.append(target_id)
+        username = PENDING_REQUESTS.pop(target_id)
+        await update.message.reply_text(f"✅ Пользователь @{username} (ID: {target_id}) одобрен.")
+
+        # Уведомляем пользователя
+        await context.bot.send_message(
+            chat_id=target_id,
+            text="✅ Ваш запрос одобрен! Теперь вы можете пользоваться ботом.\n"
+                 "Отправьте /start, чтобы начать."
+        )
+    except (IndexError, ValueError):
+        await update.message.reply_text("❌ Используй: /approve ID_пользователя")
+
+# ========== ОТКЛОНЕНИЕ ==========
+async def deny(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != OWNER_ID:
+        await update.message.reply_text("⛔ Только владелец может отклонять.")
+        return
+
+    try:
+        target_id = int(context.args[0])
+        if target_id not in PENDING_REQUESTS:
+            await update.message.reply_text(f"❌ Заявка от {target_id} не найдена.")
+            return
+
+        username = PENDING_REQUESTS.pop(target_id)
+        await update.message.reply_text(f"❌ Пользователь @{username} (ID: {target_id}) отклонён.")
+
+        # Уведомляем пользователя
+        await context.bot.send_message(
+            chat_id=target_id,
+            text="❌ Ваш запрос отклонён владельцем бота."
+        )
+    except (IndexError, ValueError):
+        await update.message.reply_text("❌ Используй: /deny ID_пользователя")
+
+# ========== ОБРАБОТКА СООБЩЕНИЙ ==========
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not is_allowed(user_id):
+        await update.message.reply_text("⛔ Доступ запрещён. Отправьте /start для запроса доступа.")
+        return
+
     try:
         text = update.message.text.strip()
         user = update.effective_user
@@ -129,6 +230,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("approve", approve))
+    app.add_handler(CommandHandler("deny", deny))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     print("🤖 Бот запущен и работает!")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
