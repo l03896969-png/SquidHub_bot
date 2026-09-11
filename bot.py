@@ -5,9 +5,7 @@ import requests
 import random
 import string
 import socket
-import os
 import phonenumbers
-import yt_dlp
 from phonenumbers import carrier, geocoder, timezone
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -184,57 +182,6 @@ def get_random_fact():
     ]
     return random.choice(facts)
 
-def search_song(query):
-    try:
-        ydl_opts = {
-            "quiet": True,
-            "no_warnings": True,
-            "default_search": "ytsearch1",
-            "noplaylist": True,
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info("ytsearch1:" + query, download=False)
-            if "entries" in info and info["entries"]:
-                entry = info["entries"][0]
-                return {
-                    "title": entry.get("title", "Неизвестно"),
-                    "url": entry.get("webpage_url", ""),
-                    "duration": entry.get("duration", 0),
-                    "uploader": entry.get("uploader", "Неизвестно"),
-                }
-            return {"error": "Песня не найдена"}
-    except Exception as e:
-        return {"error": "Ошибка поиска: " + str(e)}
-
-def download_song(query, output_path="/tmp/song"):
-    try:
-        ydl_opts = {
-            "quiet": True,
-            "no_warnings": True,
-            "default_search": "ytsearch1",
-            "noplaylist": True,
-            "format": "bestaudio/best",
-            "outtmpl": output_path + ".%(ext)s",
-            "postprocessors": [{
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "192",
-            }],
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info("ytsearch1:" + query, download=True)
-            if "entries" in info and info["entries"]:
-                entry = info["entries"][0]
-                return {
-                    "title": entry.get("title", "song"),
-                    "filepath": output_path + ".mp3",
-                    "duration": entry.get("duration", 0),
-                    "uploader": entry.get("uploader", "Неизвестно"),
-                }
-            return {"error": "Песня не найдена"}
-    except Exception as e:
-        return {"error": "Ошибка скачивания: " + str(e)}
-
 def back_button():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("⬅️ В главное меню", callback_data="back_to_menu")]
@@ -272,8 +219,6 @@ def tools_menu():
         [InlineKeyboardButton("🔑 Генератор пароля", callback_data="tool_password")],
         [InlineKeyboardButton("🎭 Генератор ника", callback_data="tool_nickname")],
         [InlineKeyboardButton("💡 Случайный факт", callback_data="tool_fact")],
-        [InlineKeyboardButton("🎵 Найти песню", callback_data="tool_music_search")],
-        [InlineKeyboardButton("📥 Скачать и отправить", callback_data="tool_music_download")],
         [InlineKeyboardButton("⬅️ В главное меню", callback_data="back_to_menu")],
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -494,10 +439,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "tool_fact":
         fact = get_random_fact()
         await query.edit_message_text("💡 Факт:\n\n" + fact, reply_markup=tools_menu())
-    elif data == "tool_music_search":
-        await query.edit_message_text("🎵 Найти песню\n\nОтправь название песни или исполнителя:", reply_markup=back_button())
-    elif data == "tool_music_download":
-        await query.edit_message_text("📥 Скачать и отправить\n\nОтправь название песни — я скачаю и отправлю mp3:", reply_markup=back_button())
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global FORWARD_MESSAGES
@@ -608,44 +549,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(reply, reply_markup=back_button())
 
         else:
-            await update.message.reply_text("🎵 Ищу: " + text + "\n\nПодожди...", reply_markup=back_button())
-
-            song_info = search_song(text)
-            if "error" in song_info:
-                await update.message.reply_text("❌ " + song_info["error"], reply_markup=back_button())
-                return
-
-            duration = song_info.get("duration", 0)
-            dur_str = str(duration // 60) + ":" + str(duration % 60).zfill(2) if duration else "?"
-            reply = (
-                "🎵 Найдено:\n\n"
-                "📌 " + song_info["title"] + "\n"
-                "👤 " + song_info["uploader"] + "\n"
-                "⏱️ " + dur_str + "\n\n"
-                "Отправляю mp3..."
-            )
-            await update.message.reply_text(reply)
-
-            try:
-                result = download_song(text)
-                if "error" in result:
-                    await update.message.reply_text("❌ " + result["error"], reply_markup=back_button())
-                    return
-
-                filepath = result["filepath"]
-                if os.path.exists(filepath):
-                    with open(filepath, "rb") as audio:
-                        await update.message.reply_audio(
-                            audio=audio,
-                            title=result["title"],
-                            performer=result.get("uploader", "Unknown"),
-                            reply_markup=back_button(),
-                        )
-                    os.remove(filepath)
-                else:
-                    await update.message.reply_text("❌ Файл не найден после скачивания.", reply_markup=back_button())
-            except Exception as e:
-                await update.message.reply_text("❌ Ошибка: " + str(e), reply_markup=back_button())
+            await update.message.reply_text("❌ Не распознано. Выбери из меню:", reply_markup=main_menu())
 
     except Exception as e:
         await update.message.reply_text("⚠️ Ошибка: " + str(e))
