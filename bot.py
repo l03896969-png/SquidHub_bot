@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-🔍 SquidHub Bot v6.0 — Telegram-бот с расширенным функционалом
-Владелец: @zxcelite
-"""
-
 import logging
 import re
 import requests
@@ -24,10 +19,6 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# ═══════════════════════════════════════════════
-#  НАСТРОЙКИ
-# ═══════════════════════════════════════════════
-
 TELEGRAM_TOKEN = "8476291431:AAElHgmZT92_GIBIchbnQ3AxCxu98HEQjx4"
 OWNER_ID = 1100862483
 
@@ -42,10 +33,6 @@ logging.basicConfig(
     level=logging.INFO,
 )
 logger = logging.getLogger(__name__)
-
-# ═══════════════════════════════════════════════
-#  ШАБЛОНЫ
-# ═══════════════════════════════════════════════
 
 GREETINGS = [
     "🛸 SquidHub на связи\n\nВыбери, что хочешь проверить:",
@@ -85,28 +72,20 @@ def random_global_deny():
 def random_wait():
     return random.choice(WAIT_MESSAGES)
 
-# ═══════════════════════════════════════════════
-#  ПРОВЕРКИ
-# ═══════════════════════════════════════════════
-
-def is_owner(user_id: int) -> bool:
+def is_owner(user_id):
     return user_id == OWNER_ID
 
-def is_allowed(username: str) -> bool:
+def is_allowed(username):
     if not username:
         return False
     return username.lower() in [u.lower() for u in ALLOWED_USERNAMES]
 
-def is_blocked(username: str) -> bool:
+def is_blocked(username):
     if not username:
         return False
     return username.lower() in [u.lower() for u in BLOCKED_USERS.keys()]
 
-# ═══════════════════════════════════════════════
-#  ФУНКЦИИ
-# ═══════════════════════════════════════════════
-
-def get_phone_info(phone: str) -> dict:
+def get_phone_info(phone):
     try:
         parsed = phonenumbers.parse(phone, None)
         if not phonenumbers.is_valid_number(parsed):
@@ -124,10 +103,9 @@ def get_phone_info(phone: str) -> dict:
     except Exception as e:
         return {"error": str(e)}
 
-
-def get_telegram_info(username: str) -> dict:
+def get_telegram_info(username):
     try:
-        resp = requests.get(f"https://t.me/{username}", timeout=5)
+        resp = requests.get("https://t.me/" + username, timeout=5)
         if resp.status_code == 200:
             title = re.search(r"<title>(.*?)</title>", resp.text)
             title_text = title.group(1) if title else "Неизвестно"
@@ -135,19 +113,15 @@ def get_telegram_info(username: str) -> dict:
                 "username": username,
                 "exists": True,
                 "title": title_text,
-                "url": f"https://t.me/{username}",
+                "url": "https://t.me/" + username,
             }
         return {"username": username, "exists": False}
     except Exception:
         return {"error": "Не удалось проверить"}
 
-
-def get_ip_info(ip: str) -> dict:
+def get_ip_info(ip):
     try:
-        url = (
-            f"http://ip-api.com/json/{ip}"
-            f"?fields=status,message,country,city,region,isp,lat,lon,org,as"
-        )
+        url = "http://ip-api.com/json/" + ip + "?fields=status,message,country,city,region,isp,lat,lon,org,as"
         resp = requests.get(url, timeout=5)
         if resp.status_code == 200:
             return resp.json()
@@ -155,13 +129,9 @@ def get_ip_info(ip: str) -> dict:
     except Exception:
         return {"error": "Ошибка запроса"}
 
-
-def check_email_leaks(email: str) -> dict:
+def check_email_leaks(email):
     try:
-        resp = requests.get(
-            f"https://api.xposedornot.com/v1/check-email/{email}",
-            timeout=10,
-        )
+        resp = requests.get("https://api.xposedornot.com/v1/check-email/" + email, timeout=10)
         if resp.status_code == 200:
             data = resp.json()
             breaches = data.get("breaches", [])
@@ -170,19 +140,16 @@ def check_email_leaks(email: str) -> dict:
     except Exception as e:
         return {"error": str(e)}
 
-
-def get_domain_info(domain: str) -> dict:
+def get_domain_info(domain):
     try:
         ip = socket.gethostbyname(domain)
         return {"domain": domain, "ip": ip, "resolved": True}
     except Exception as e:
-        return {"error": f"Домен не резолвится: {e}"}
+        return {"error": "Домен не резолвится: " + str(e)}
 
-
-def generate_password(length: int = 16) -> str:
+def generate_password(length=16):
     chars = string.ascii_letters + string.digits + "!@#$%^&*()_+-=[]{}"
     return "".join(random.choice(chars) for _ in range(length))
-
 
 NICK_ADJECTIVES = [
     "Silent", "Dark", "Frost", "Crimson", "Shadow", "Iron", "Neon", "Wild",
@@ -198,14 +165,13 @@ NICK_NOUNS = [
 
 NICK_SUFFIXES = ["", "x", "z", "ex", "ix", "on", "ar", "er", "is", "us"]
 
-def generate_nickname() -> str:
+def generate_nickname():
     adj = random.choice(NICK_ADJECTIVES)
     noun = random.choice(NICK_NOUNS)
     suffix = random.choice(NICK_SUFFIXES)
-    return f"{adj}{noun}{suffix}"
+    return adj + noun + suffix
 
-
-def get_random_fact() -> str:
+def get_random_fact():
     facts = [
         "🐙 У осьминога три сердца и голубая кровь.",
         "🍯 Мёд никогда не портится — археологи нашли съедобный мёд в гробницах Египта.",
@@ -218,8 +184,7 @@ def get_random_fact() -> str:
     ]
     return random.choice(facts)
 
-
-def search_song(query: str) -> dict:
+def search_song(query):
     try:
         ydl_opts = {
             "quiet": True,
@@ -228,7 +193,7 @@ def search_song(query: str) -> dict:
             "noplaylist": True,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch1:{query}", download=False)
+            info = ydl.extract_info("ytsearch1:" + query, download=False)
             if "entries" in info and info["entries"]:
                 entry = info["entries"][0]
                 return {
@@ -239,10 +204,9 @@ def search_song(query: str) -> dict:
                 }
             return {"error": "Песня не найдена"}
     except Exception as e:
-        return {"error": f"Ошибка поиска: {e}"}
+        return {"error": "Ошибка поиска: " + str(e)}
 
-
-def download_song(query: str, output_path: str = "/tmp/song") -> dict:
+def download_song(query, output_path="/tmp/song"):
     try:
         ydl_opts = {
             "quiet": True,
@@ -250,7 +214,7 @@ def download_song(query: str, output_path: str = "/tmp/song") -> dict:
             "default_search": "ytsearch1",
             "noplaylist": True,
             "format": "bestaudio/best",
-            "outtmpl": f"{output_path}.%(ext)s",
+            "outtmpl": output_path + ".%(ext)s",
             "postprocessors": [{
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
@@ -258,32 +222,25 @@ def download_song(query: str, output_path: str = "/tmp/song") -> dict:
             }],
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch1:{query}", download=True)
+            info = ydl.extract_info("ytsearch1:" + query, download=True)
             if "entries" in info and info["entries"]:
                 entry = info["entries"][0]
-                title = entry.get("title", "song")
-                filepath = f"{output_path}.mp3"
                 return {
-                    "title": title,
-                    "filepath": filepath,
+                    "title": entry.get("title", "song"),
+                    "filepath": output_path + ".mp3",
                     "duration": entry.get("duration", 0),
                     "uploader": entry.get("uploader", "Неизвестно"),
                 }
             return {"error": "Песня не найдена"}
     except Exception as e:
-        return {"error": f"Ошибка скачивания: {e}"}
+        return {"error": "Ошибка скачивания: " + str(e)}
 
-# ═══════════════════════════════════════════════
-#  КЛАВИАТУРЫ
-# ═══════════════════════════════════════════════
-
-def back_button() -> InlineKeyboardMarkup:
+def back_button():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("⬅️ В главное меню", callback_data="back_to_menu")]
     ])
 
-
-def main_menu() -> InlineKeyboardMarkup:
+def main_menu():
     keyboard = [
         [InlineKeyboardButton("📞 Проверить номер", callback_data="menu_phone")],
         [InlineKeyboardButton("👤 Проверить юзернейм", callback_data="menu_username")],
@@ -294,8 +251,7 @@ def main_menu() -> InlineKeyboardMarkup:
     ]
     return InlineKeyboardMarkup(keyboard)
 
-
-def owner_menu() -> InlineKeyboardMarkup:
+def owner_menu():
     global_status = "🔴 ВЫКЛ" if GLOBAL_BLOCK else "🟢 ВКЛ"
     forward_status = "🔔 ВКЛ" if FORWARD_MESSAGES else "🔕 ВЫКЛ"
     keyboard = [
@@ -305,14 +261,13 @@ def owner_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton("📧 Проверить email", callback_data="menu_email")],
         [InlineKeyboardButton("🔍 Whois домена", callback_data="menu_domain")],
         [InlineKeyboardButton("🎲 Инструменты", callback_data="menu_tools")],
-        [InlineKeyboardButton(f"🌐 Глобальный доступ: {global_status}", callback_data="global_toggle")],
-        [InlineKeyboardButton(f"🔔 Уведомления: {forward_status}", callback_data="forward_toggle")],
+        [InlineKeyboardButton("🌐 Глобальный доступ: " + global_status, callback_data="global_toggle")],
+        [InlineKeyboardButton("🔔 Уведомления: " + forward_status, callback_data="forward_toggle")],
         [InlineKeyboardButton("👥 Список пользователей", callback_data="list_users")],
     ]
     return InlineKeyboardMarkup(keyboard)
 
-
-def tools_menu() -> InlineKeyboardMarkup:
+def tools_menu():
     keyboard = [
         [InlineKeyboardButton("🔑 Генератор пароля", callback_data="tool_password")],
         [InlineKeyboardButton("🎭 Генератор ника", callback_data="tool_nickname")],
@@ -323,37 +278,29 @@ def tools_menu() -> InlineKeyboardMarkup:
     ]
     return InlineKeyboardMarkup(keyboard)
 
-
-def approval_buttons(username: str) -> InlineKeyboardMarkup:
+def approval_buttons(username):
     keyboard = [
         [
-            InlineKeyboardButton("✅ Одобрить", callback_data=f"approve_{username}"),
-            InlineKeyboardButton("❌ Отклонить", callback_data=f"deny_{username}"),
+            InlineKeyboardButton("✅ Одобрить", callback_data="approve_" + username),
+            InlineKeyboardButton("❌ Отклонить", callback_data="deny_" + username),
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
 
-
-def user_manage_buttons(username: str) -> InlineKeyboardMarkup:
+def user_manage_buttons(username):
     keyboard = [
-        [InlineKeyboardButton(f"🚫 Заблокировать @{username}", callback_data=f"block_{username}")],
-        [InlineKeyboardButton(f"✅ Разблокировать @{username}", callback_data=f"unblock_{username}")],
+        [InlineKeyboardButton("🚫 Заблокировать @" + username, callback_data="block_" + username)],
+        [InlineKeyboardButton("✅ Разблокировать @" + username, callback_data="unblock_" + username)],
         [InlineKeyboardButton("⬅️ Назад", callback_data="back_to_menu")],
     ]
     return InlineKeyboardMarkup(keyboard)
-
-# ═══════════════════════════════════════════════
-#  /start
-# ═══════════════════════════════════════════════
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     username = update.effective_user.username
 
     if not username:
-        await update.message.reply_text(
-            "❌ Нет юзернейма в Telegram\n\nУстанови его в настройках и напиши /start снова."
-        )
+        await update.message.reply_text("❌ Нет юзернейма в Telegram\n\nУстанови его в настройках и напиши /start снова.")
         return
 
     if is_owner(user_id):
@@ -380,13 +327,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(random_wait())
     await context.bot.send_message(
         chat_id=OWNER_ID,
-        text=f"🔔 Новая заявка\n\n👤 @{username}\n🆔 {user_id}",
+        text="🔔 Новая заявка\n\n👤 @" + username + "\n🆔 " + str(user_id),
         reply_markup=approval_buttons(username),
     )
-
-# ═══════════════════════════════════════════════
-#  КНОПКИ
-# ═══════════════════════════════════════════════
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global GLOBAL_BLOCK, FORWARD_MESSAGES
@@ -397,7 +340,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     username = query.from_user.username
 
-    # ─── Одобрить / отклонить ───
     if data.startswith("approve_") or data.startswith("deny_"):
         if not is_owner(user_id):
             return
@@ -408,25 +350,24 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 found_key = k
                 break
         if not found_key:
-            await query.edit_message_text(f"❌ Заявка @{target} не найдена.")
+            await query.edit_message_text("❌ Заявка @" + target + " не найдена.")
             return
         target_id = PENDING_REQUESTS.pop(found_key)
         if action == "approve":
             ALLOWED_USERNAMES.append(found_key)
-            await query.edit_message_text(f"✅ @{found_key} одобрен")
+            await query.edit_message_text("✅ @" + found_key + " одобрен")
             try:
                 await context.bot.send_message(chat_id=target_id, text="✅ Доступ одобрен\n\nОтправь /start.")
             except Exception:
                 pass
         else:
-            await query.edit_message_text(f"❌ @{found_key} отклонён")
+            await query.edit_message_text("❌ @" + found_key + " отклонён")
             try:
                 await context.bot.send_message(chat_id=target_id, text="❌ Заявка отклонена.")
             except Exception:
                 pass
         return
 
-    # ─── Глобальная блокировка ───
     if data == "global_toggle":
         if not is_owner(user_id):
             return
@@ -447,16 +388,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text("🟢 Бот включён для всех", reply_markup=owner_menu())
         return
 
-    # ─── Уведомления ───
     if data == "forward_toggle":
         if not is_owner(user_id):
             return
         FORWARD_MESSAGES = not FORWARD_MESSAGES
         status = "ВКЛЮЧЕНЫ" if FORWARD_MESSAGES else "ВЫКЛЮЧЕНЫ"
-        await query.edit_message_text(f"📬 Уведомления о сообщениях: {status}", reply_markup=owner_menu())
+        await query.edit_message_text("📬 Уведомления о сообщениях: " + status, reply_markup=owner_menu())
         return
 
-    # ─── Список пользователей ───
     if data == "list_users":
         if not is_owner(user_id):
             return
@@ -466,26 +405,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = "📋 Одобренные:\n\n"
         for i, uname in enumerate(ALLOWED_USERNAMES, 1):
             status = "🚫" if is_blocked(uname) else "✅"
-            text += f"{i}. {status} @{uname}\n"
+            text += str(i) + ". " + status + " @" + uname + "\n"
         keyboard = []
         for uname in ALLOWED_USERNAMES:
             if uname.lower() == "zxcelite":
                 continue
             status = "🚫" if is_blocked(uname) else "✅"
-            keyboard.append([InlineKeyboardButton(f"{status} @{uname}", callback_data=f"manage_{uname}")])
+            keyboard.append([InlineKeyboardButton(status + " @" + uname, callback_data="manage_" + uname)])
         keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data="back_to_menu")])
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # ─── Управление юзером ───
     if data.startswith("manage_"):
         if not is_owner(user_id):
             return
         target = data.split("_", 1)[1]
-        await query.edit_message_text(
-            f"⚙️ Управление @{target}\n\nСтатус: {'🚫 Заблокирован' if is_blocked(target) else '✅ Активен'}",
-            reply_markup=user_manage_buttons(target),
-        )
+        status = "🚫 Заблокирован" if is_blocked(target) else "✅ Активен"
+        await query.edit_message_text("⚙️ Управление @" + target + "\n\nСтатус: " + status, reply_markup=user_manage_buttons(target))
         return
 
     if data.startswith("block_"):
@@ -493,7 +429,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         target = data.split("_", 1)[1]
         if is_blocked(target):
-            await query.edit_message_text(f"ℹ️ @{target} уже заблокирован.", reply_markup=owner_menu())
+            await query.edit_message_text("ℹ️ @" + target + " уже заблокирован.", reply_markup=owner_menu())
             return
         target_id = None
         for source in [PENDING_REQUESTS, BLOCKED_USERS]:
@@ -503,7 +439,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     break
         BLOCKED_USERS[target] = target_id
         ALLOWED_USERNAMES[:] = [u for u in ALLOWED_USERNAMES if u.lower() != target.lower()]
-        await query.edit_message_text(f"🚫 @{target} заблокирован", reply_markup=owner_menu())
+        await query.edit_message_text("🚫 @" + target + " заблокирован", reply_markup=owner_menu())
         if target_id:
             try:
                 await context.bot.send_message(chat_id=target_id, text=random_deny())
@@ -516,12 +452,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         target = data.split("_", 1)[1]
         if not is_blocked(target):
-            await query.edit_message_text(f"ℹ️ @{target} не заблокирован.", reply_markup=owner_menu())
+            await query.edit_message_text("ℹ️ @" + target + " не заблокирован.", reply_markup=owner_menu())
             return
         target_id = BLOCKED_USERS.pop(target, None)
         if target.lower() not in [u.lower() for u in ALLOWED_USERNAMES]:
             ALLOWED_USERNAMES.append(target)
-        await query.edit_message_text(f"✅ @{target} разблокирован", reply_markup=owner_menu())
+        await query.edit_message_text("✅ @" + target + " разблокирован", reply_markup=owner_menu())
         if target_id:
             try:
                 await context.bot.send_message(chat_id=target_id, text="✅ Доступ восстановлен. /start")
@@ -529,7 +465,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 pass
         return
 
-    # ─── Назад ───
     if data == "back_to_menu":
         if is_owner(user_id):
             await query.edit_message_text("👑 Панель владельца\n\nВыбери:", reply_markup=owner_menu())
@@ -537,7 +472,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(random_greeting(), reply_markup=main_menu())
         return
 
-    # ─── Меню пробива ───
     if data == "menu_phone":
         await query.edit_message_text("📞 Проверка номера\n\nОтправь: +380XXXXXXXXX", reply_markup=back_button())
     elif data == "menu_username":
@@ -551,24 +485,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "menu_tools":
         await query.edit_message_text("🎲 Инструменты\n\nВыбери:", reply_markup=tools_menu())
 
-    # ─── Инструменты ───
     elif data == "tool_password":
         pwd = generate_password(20)
-        await query.edit_message_text(f"🔑 Твой пароль:\n\n{pwd}\n\nСкопируй и сохрани.", reply_markup=tools_menu())
+        await query.edit_message_text("🔑 Твой пароль:\n\n" + pwd + "\n\nСкопируй и сохрани.", reply_markup=tools_menu())
     elif data == "tool_nickname":
         nick = generate_nickname()
-        await query.edit_message_text(f"🎭 Твой ник:\n\n{nick}", reply_markup=tools_menu())
+        await query.edit_message_text("🎭 Твой ник:\n\n" + nick, reply_markup=tools_menu())
     elif data == "tool_fact":
         fact = get_random_fact()
-        await query.edit_message_text(f"💡 Факт:\n\n{fact}", reply_markup=tools_menu())
+        await query.edit_message_text("💡 Факт:\n\n" + fact, reply_markup=tools_menu())
     elif data == "tool_music_search":
         await query.edit_message_text("🎵 Найти песню\n\nОтправь название песни или исполнителя:", reply_markup=back_button())
     elif data == "tool_music_download":
         await query.edit_message_text("📥 Скачать и отправить\n\nОтправь название песни — я скачаю и отправлю mp3:", reply_markup=back_button())
-
-# ═══════════════════════════════════════════════
-#  СООБЩЕНИЯ
-# ═══════════════════════════════════════════════
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global FORWARD_MESSAGES
@@ -587,127 +516,120 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         text = update.message.text.strip()
-        logger.info(f"@{username}: {text}")
+        logger.info("@" + str(username) + ": " + text)
 
-        # ─── Пересылка владельцу ───
         if FORWARD_MESSAGES and not is_owner(user_id):
             try:
                 await context.bot.send_message(
                     chat_id=OWNER_ID,
-                    text=f"📬 Сообщение от пользователя\n\n👤 @{username}\n🆔 {user_id}\n\n💬 {text}",
+                    text="📬 Сообщение от пользователя\n\n👤 @" + username + "\n🆔 " + str(user_id) + "\n\n💬 " + text,
                 )
             except Exception:
                 pass
 
-        # ─── Номер ───
         if re.match(r"^\+?\d{10,15}$", text):
             info = get_phone_info(text)
             if "error" in info:
-                await update.message.reply_text(f"❌ {info['error']}", reply_markup=back_button())
+                await update.message.reply_text("❌ " + info["error"], reply_markup=back_button())
                 return
             reply = (
-                f"📞 Результат\n\n"
-                f"🔹 Номер: {info['phone']}\n"
-                f"🌍 Страна: {info['country']}\n"
-                f"📡 Оператор: {info['operator']}\n"
-                f"⏳ Таймзона: {info['timezone']}\n"
-                f"✅ Валидный: {'Да' if info['valid'] else 'Нет'}"
+                "📞 Результат\n\n"
+                "🔹 Номер: " + info["phone"] + "\n"
+                "🌍 Страна: " + info["country"] + "\n"
+                "📡 Оператор: " + info["operator"] + "\n"
+                "⏳ Таймзона: " + info["timezone"] + "\n"
+                "✅ Валидный: " + ("Да" if info["valid"] else "Нет")
             )
             await update.message.reply_text(reply, reply_markup=back_button())
 
-        # ─── Email ───
         elif re.match(r"^[^@]+@[^@]+\.[^@]+$", text):
             info = check_email_leaks(text)
             if "error" in info:
-                await update.message.reply_text(f"❌ {info['error']}", reply_markup=back_button())
+                await update.message.reply_text("❌ " + info["error"], reply_markup=back_button())
                 return
             if info["count"] > 0:
-                breaches_list = "\n".join([f"• {b}" for b in info["breaches"][:10]])
+                breaches_list = "\n".join(["• " + b for b in info["breaches"][:10]])
                 reply = (
-                    f"📧 Email проверен\n\n"
-                    f"🔹 Email: {info['email']}\n"
-                    f"⚠️ Найден в утечках: {info['count']}\n\n"
-                    f"{breaches_list}"
+                    "📧 Email проверен\n\n"
+                    "🔹 Email: " + info["email"] + "\n"
+                    "⚠️ Найден в утечках: " + str(info["count"]) + "\n\n"
+                    + breaches_list
                 )
             else:
-                reply = f"📧 Email: {info['email']}\n\n✅ Утечек не найдено."
+                reply = "📧 Email: " + info["email"] + "\n\n✅ Утечек не найдено."
             await update.message.reply_text(reply, reply_markup=back_button())
 
-        # ─── Юзернейм ───
         elif text.startswith("@"):
             info = get_telegram_info(text[1:])
             if "error" in info:
-                await update.message.reply_text(f"❌ {info['error']}", reply_markup=back_button())
+                await update.message.reply_text("❌ " + info["error"], reply_markup=back_button())
                 return
             if info.get("exists"):
                 reply = (
-                    f"👤 Результат\n\n"
-                    f"✅ Юзернейм: @{info['username']}\n"
-                    f"🔗 Ссылка: {info['url']}\n"
-                    f"📝 Название: {info.get('title', 'Неизвестно')}"
+                    "👤 Результат\n\n"
+                    "✅ Юзернейм: @" + info["username"] + "\n"
+                    "🔗 Ссылка: " + info["url"] + "\n"
+                    "📝 Название: " + info.get("title", "Неизвестно")
                 )
                 await update.message.reply_text(reply, reply_markup=back_button())
             else:
                 await update.message.reply_text("❌ Юзернейм не существует.", reply_markup=back_button())
 
-        # ─── IP ───
         elif re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", text):
             info = get_ip_info(text)
             if "error" in info:
-                await update.message.reply_text(f"❌ {info['error']}", reply_markup=back_button())
+                await update.message.reply_text("❌ " + info["error"], reply_markup=back_button())
                 return
             if info.get("status") == "fail":
-                await update.message.reply_text(f"❌ {info.get('message', 'Ошибка')}", reply_markup=back_button())
+                await update.message.reply_text("❌ " + info.get("message", "Ошибка"), reply_markup=back_button())
                 return
             reply = (
-                f"🌐 Результат\n\n"
-                f"🔹 IP: {text}\n"
-                f"📍 Страна: {info.get('country', '—')}\n"
-                f"🏙️ Город: {info.get('city', '—')}\n"
-                f"📌 Регион: {info.get('region', '—')}\n"
-                f"📡 Провайдер: {info.get('isp', '—')}\n"
-                f"🗺️ Координаты: {info.get('lat', '—')}, {info.get('lon', '—')}"
+                "🌐 Результат\n\n"
+                "🔹 IP: " + text + "\n"
+                "📍 Страна: " + info.get("country", "—") + "\n"
+                "🏙️ Город: " + info.get("city", "—") + "\n"
+                "📌 Регион: " + info.get("region", "—") + "\n"
+                "📡 Провайдер: " + info.get("isp", "—") + "\n"
+                "🗺️ Координаты: " + str(info.get("lat", "—")) + ", " + str(info.get("lon", "—"))
             )
             await update.message.reply_text(reply, reply_markup=back_button())
 
-        # ─── Домен ───
         elif "." in text and not text.startswith("@") and " " not in text:
             info = get_domain_info(text)
             if "error" in info:
-                await update.message.reply_text(f"❌ {info['error']}", reply_markup=back_button())
+                await update.message.reply_text("❌ " + info["error"], reply_markup=back_button())
                 return
             reply = (
-                f"🔍 Домен\n\n"
-                f"🔹 Домен: {info['domain']}\n"
-                f"🌐 IP: {info['ip']}\n"
-                f"✅ Резолвится: Да"
+                "🔍 Домен\n\n"
+                "🔹 Домен: " + info["domain"] + "\n"
+                "🌐 IP: " + info["ip"] + "\n"
+                "✅ Резолвится: Да"
             )
             await update.message.reply_text(reply, reply_markup=back_button())
 
-        # ─── ПЕСНЯ ───
         else:
-            await update.message.reply_text(f"🎵 Ищу: {text}\n\nПодожди...", reply_markup=back_button())
+            await update.message.reply_text("🎵 Ищу: " + text + "\n\nПодожди...", reply_markup=back_button())
 
             song_info = search_song(text)
             if "error" in song_info:
-                await update.message.reply_text(f"❌ {song_info['error']}", reply_markup=back_button())
+                await update.message.reply_text("❌ " + song_info["error"], reply_markup=back_button())
                 return
 
             duration = song_info.get("duration", 0)
-            dur_str = f"{duration // 60}:{duration % 60:02d}" if duration else "?"
+            dur_str = str(duration // 60) + ":" + str(duration % 60).zfill(2) if duration else "?"
             reply = (
-                f"🎵 Найдено:\n\n"
-                f"📌 {song_info['title']}\n"
-                f"👤 {song_info['uploader']}\n"
-                f"⏱️ {dur_str}\n\n"
-                f"Отправляю mp3..."
+                "🎵 Найдено:\n\n"
+                "📌 " + song_info["title"] + "\n"
+                "👤 " + song_info["uploader"] + "\n"
+                "⏱️ " + dur_str + "\n\n"
+                "Отправляю mp3..."
             )
             await update.message.reply_text(reply)
 
             try:
                 result = download_song(text)
                 if "error" in result:
-                    await update.message.reply_text(f"❌ {result['error']}", reply_markup=back_button())
+                    await update.message.reply_text("❌ " + result["error"], reply_markup=back_button())
                     return
 
                 filepath = result["filepath"]
@@ -723,15 +645,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     await update.message.reply_text("❌ Файл не найден после скачивания.", reply_markup=back_button())
             except Exception as e:
-                await update.message.reply_text(f"❌ Ошибка: {e}", reply_markup=back_button())
+                await update.message.reply_text("❌ Ошибка: " + str(e), reply_markup=back_button())
 
     except Exception as e:
-        await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
-        logger.error(f"Краш: {e}")
-
-# ═══════════════════════════════════════════════
-#  ЗАПУСК
-# ═══════════════════════════════════════════════
+        await update.message.reply_text("⚠️ Ошибка: " + str(e))
+        logger.error("Краш: " + str(e))
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -740,7 +658,6 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     logger.info("🤖 SquidHub Bot v6.0 запущен!")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
-
 
 if __name__ == "__main__":
     main()
