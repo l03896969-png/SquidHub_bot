@@ -10,9 +10,8 @@ import requests
 import random
 import string
 import socket
-import phonenumbers
 import os
-import asyncio
+import phonenumbers
 import yt_dlp
 from phonenumbers import carrier, geocoder, timezone
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -45,7 +44,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════
-#  УНИКАЛЬНЫЕ ШАБЛОНЫ (БЕЗ ЛИШНИХ КАВЫЧЕК)
+#  ШАБЛОНЫ
 # ═══════════════════════════════════════════════
 
 GREETINGS = [
@@ -104,7 +103,7 @@ def is_blocked(username: str) -> bool:
     return username.lower() in [u.lower() for u in BLOCKED_USERS.keys()]
 
 # ═══════════════════════════════════════════════
-#  ФУНКЦИИ ПРОБИВА
+#  ФУНКЦИИ
 # ═══════════════════════════════════════════════
 
 def get_phone_info(phone: str) -> dict:
@@ -185,10 +184,6 @@ def generate_password(length: int = 16) -> str:
     return "".join(random.choice(chars) for _ in range(length))
 
 
-# ═══════════════════════════════════════════════
-#  ГЕНЕРАТОР НИКОВ (НОРМАЛЬНЫЙ)
-# ═══════════════════════════════════════════════
-
 NICK_ADJECTIVES = [
     "Silent", "Dark", "Frost", "Crimson", "Shadow", "Iron", "Neon", "Wild",
     "Swift", "Bitter", "Golden", "Hollow", "Lucid", "Vivid", "Ancient", "Broken",
@@ -201,9 +196,7 @@ NICK_NOUNS = [
     "Night", "Ocean", "Pine", "Quest", "Rain", "Sage", "Thorn", "Wave",
 ]
 
-NICK_SUFFIXES = [
-    "", "x", "z", "ex", "ix", "on", "ar", "er", "is", "us",
-]
+NICK_SUFFIXES = ["", "x", "z", "ex", "ix", "on", "ar", "er", "is", "us"]
 
 def generate_nickname() -> str:
     adj = random.choice(NICK_ADJECTIVES)
@@ -225,19 +218,14 @@ def get_random_fact() -> str:
     ]
     return random.choice(facts)
 
-# ═══════════════════════════════════════════════
-#  ПОИСК И ОТПРАВКА ПЕСЕН (yt-dlp)
-# ═══════════════════════════════════════════════
 
 def search_song(query: str) -> dict:
-    """Ищет песню через yt-dlp и возвращает информацию."""
     try:
         ydl_opts = {
             "quiet": True,
             "no_warnings": True,
             "default_search": "ytsearch1",
             "noplaylist": True,
-            "extract_flat": False,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(f"ytsearch1:{query}", download=False)
@@ -248,7 +236,6 @@ def search_song(query: str) -> dict:
                     "url": entry.get("webpage_url", ""),
                     "duration": entry.get("duration", 0),
                     "uploader": entry.get("uploader", "Неизвестно"),
-                    "video_id": entry.get("id", ""),
                 }
             return {"error": "Песня не найдена"}
     except Exception as e:
@@ -256,7 +243,6 @@ def search_song(query: str) -> dict:
 
 
 def download_song(query: str, output_path: str = "/tmp/song") -> dict:
-    """Скачивает песню в mp3."""
     try:
         ydl_opts = {
             "quiet": True,
@@ -366,16 +352,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not username:
         await update.message.reply_text(
-            "❌ Нет юзернейма в Telegram\n\n"
-            "Установи его в настройках и напиши /start снова.",
+            "❌ Нет юзернейма в Telegram\n\nУстанови его в настройках и напиши /start снова."
         )
         return
 
     if is_owner(user_id):
-        await update.message.reply_text(
-            "👑 Панель владельца\n\nВыбери действие:",
-            reply_markup=owner_menu(),
-        )
+        await update.message.reply_text("👑 Панель владельца\n\nВыбери действие:", reply_markup=owner_menu())
         return
 
     if GLOBAL_BLOCK:
@@ -398,11 +380,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(random_wait())
     await context.bot.send_message(
         chat_id=OWNER_ID,
-        text=(
-            f"🔔 Новая заявка\n\n"
-            f"👤 @{username}\n"
-            f"🆔 {user_id}"
-        ),
+        text=f"🔔 Новая заявка\n\n👤 @{username}\n🆔 {user_id}",
         reply_markup=approval_buttons(username),
     )
 
@@ -437,17 +415,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ALLOWED_USERNAMES.append(found_key)
             await query.edit_message_text(f"✅ @{found_key} одобрен")
             try:
-                await context.bot.send_message(
-                    chat_id=target_id,
-                    text="✅ Доступ одобрен\n\nОтправь /start.",
-                )
-            except:
+                await context.bot.send_message(chat_id=target_id, text="✅ Доступ одобрен\n\nОтправь /start.")
+            except Exception:
                 pass
         else:
             await query.edit_message_text(f"❌ @{found_key} отклонён")
             try:
                 await context.bot.send_message(chat_id=target_id, text="❌ Заявка отклонена.")
-            except:
+            except Exception:
                 pass
         return
 
@@ -464,33 +439,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     for k, v in source.items():
                         if k.lower() == uname.lower():
                             try:
-                                await context.bot.send_message(
-                                    chat_id=v,
-                                    text="⛔ Админ приостановил бота\n\nЖди включения.",
-                                )
-                            except:
+                                await context.bot.send_message(chat_id=v, text="⛔ Админ приостановил бота\n\nЖди включения.")
+                            except Exception:
                                 pass
-            await query.edit_message_text(
-                "🔴 Бот выключен для всех\n\nНажми кнопку снова, чтобы включить.",
-                reply_markup=owner_menu(),
-            )
+            await query.edit_message_text("🔴 Бот выключен для всех\n\nНажми кнопку снова, чтобы включить.", reply_markup=owner_menu())
         else:
-            await query.edit_message_text(
-                "🟢 Бот включён для всех",
-                reply_markup=owner_menu(),
-            )
+            await query.edit_message_text("🟢 Бот включён для всех", reply_markup=owner_menu())
         return
 
-    # ─── Переключение уведомлений ───
+    # ─── Уведомления ───
     if data == "forward_toggle":
         if not is_owner(user_id):
             return
         FORWARD_MESSAGES = not FORWARD_MESSAGES
         status = "ВКЛЮЧЕНЫ" if FORWARD_MESSAGES else "ВЫКЛЮЧЕНЫ"
-        await query.edit_message_text(
-            f"📬 Уведомления о сообщениях: {status}",
-            reply_markup=owner_menu(),
-        )
+        await query.edit_message_text(f"📬 Уведомления о сообщениях: {status}", reply_markup=owner_menu())
         return
 
     # ─── Список пользователей ───
@@ -520,8 +483,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         target = data.split("_", 1)[1]
         await query.edit_message_text(
-            f"⚙️ Управление @{target}\n\n"
-            f"Статус: {'🚫 Заблокирован' if is_blocked(target) else '✅ Активен'}",
+            f"⚙️ Управление @{target}\n\nСтатус: {'🚫 Заблокирован' if is_blocked(target) else '✅ Активен'}",
             reply_markup=user_manage_buttons(target),
         )
         return
@@ -545,7 +507,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if target_id:
             try:
                 await context.bot.send_message(chat_id=target_id, text=random_deny())
-            except:
+            except Exception:
                 pass
         return
 
@@ -563,7 +525,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if target_id:
             try:
                 await context.bot.send_message(chat_id=target_id, text="✅ Доступ восстановлен. /start")
-            except:
+            except Exception:
                 pass
         return
 
@@ -600,15 +562,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         fact = get_random_fact()
         await query.edit_message_text(f"💡 Факт:\n\n{fact}", reply_markup=tools_menu())
     elif data == "tool_music_search":
-        await query.edit_message_text(
-            "🎵 Найти песню\n\nОтправь название песни или исполнителя:",
-            reply_markup=back_button()
-        )
+        await query.edit_message_text("🎵 Найти песню\n\nОтправь название песни или исполнителя:", reply_markup=back_button())
     elif data == "tool_music_download":
-        await query.edit_message_text(
-            "📥 Скачать и отправить\n\nОтправь название песни — я скачаю и отправлю mp3:",
-            reply_markup=back_button()
-        )
+        await query.edit_message_text("📥 Скачать и отправить\n\nОтправь название песни — я скачаю и отправлю mp3:", reply_markup=back_button())
 
 # ═══════════════════════════════════════════════
 #  СООБЩЕНИЯ
@@ -633,19 +589,14 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = update.message.text.strip()
         logger.info(f"@{username}: {text}")
 
-        # ─── Пересылка сообщений владельцу ───
+        # ─── Пересылка владельцу ───
         if FORWARD_MESSAGES and not is_owner(user_id):
             try:
                 await context.bot.send_message(
                     chat_id=OWNER_ID,
-                    text=(
-                        f"📬 Сообщение от пользователя\n\n"
-                        f"👤 @{username}\n"
-                        f"🆔 {user_id}\n\n"
-                        f"💬 {text}"
-                    ),
+                    text=f"📬 Сообщение от пользователя\n\n👤 @{username}\n🆔 {user_id}\n\n💬 {text}",
                 )
-            except:
+            except Exception:
                 pass
 
         # ─── Номер ───
@@ -733,21 +684,15 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             await update.message.reply_text(reply, reply_markup=back_button())
 
-        # ─── ПЕСНЯ (если это не команда и не ссылка) ───
+        # ─── ПЕСНЯ ───
         else:
-            # Проверяем, не хочет ли пользователь найти/скачать песню
-            await update.message.reply_text(
-                f"🎵 Ищу: {text}\n\nПодожди...",
-                reply_markup=back_button()
-            )
+            await update.message.reply_text(f"🎵 Ищу: {text}\n\nПодожди...", reply_markup=back_button())
 
-            # Сначала поиск
             song_info = search_song(text)
             if "error" in song_info:
                 await update.message.reply_text(f"❌ {song_info['error']}", reply_markup=back_button())
                 return
 
-            # Показываем результат
             duration = song_info.get("duration", 0)
             dur_str = f"{duration // 60}:{duration % 60:02d}" if duration else "?"
             reply = (
@@ -759,7 +704,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             await update.message.reply_text(reply)
 
-            # Скачиваем и отправляем
             try:
                 result = download_song(text)
                 if "error" in result:
@@ -773,10 +717,30 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             audio=audio,
                             title=result["title"],
                             performer=result.get("uploader", "Unknown"),
-                            reply_markup=back_button()
+                            reply_markup=back_button(),
                         )
                     os.remove(filepath)
                 else:
                     await update.message.reply_text("❌ Файл не найден после скачивания.", reply_markup=back_button())
             except Exception as e:
-                await update.message.reply_text(f"❌ Ошибка
+                await update.message.reply_text(f"❌ Ошибка: {e}", reply_markup=back_button())
+
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
+        logger.error(f"Краш: {e}")
+
+# ═══════════════════════════════════════════════
+#  ЗАПУСК
+# ═══════════════════════════════════════════════
+
+def main():
+    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    logger.info("🤖 SquidHub Bot v6.0 запущен!")
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+
+if __name__ == "__main__":
+    main()
